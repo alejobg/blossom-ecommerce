@@ -1,5 +1,10 @@
 # React + TypeScript + Vite
 
+The public product catalog is available at `/`. Sign-in and registration return to
+the originating page when available, including after a session expires, or to the catalog otherwise. Registration
+creates an account but does not sign the user in; the backend returns a token only
+from the login endpoint.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

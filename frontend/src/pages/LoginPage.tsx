@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { AuthCard } from '../components/AuthCard'
 import { getApiProblem } from '../api/problem'
 import { useAuth } from '../hooks/useAuth'
+import { getAuthRedirect } from '../routes/authRedirect'
 
 const loginSchema = z.object({
   email: z.string().trim().email('Please enter a valid email address.'),
@@ -18,9 +19,11 @@ const inputClassName =
   'mt-2 block w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-ink outline-none transition placeholder:text-slate-400 focus:border-blossom-500 focus:ring-4 focus:ring-blossom-100'
 
 export function LoginPage() {
-  const { login, logout, session } = useAuth()
+  const { login } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const destination = getAuthRedirect(location.state, location.search)
   const [formError, setFormError] = useState('')
-  const [success, setSuccess] = useState('')
   const {
     register,
     handleSubmit,
@@ -30,10 +33,9 @@ export function LoginPage() {
 
   const onSubmit = async (values: LoginValues) => {
     setFormError('')
-    setSuccess('')
     try {
       await login(values)
-      setSuccess('You have signed in successfully.')
+      navigate(destination, { replace: true })
     } catch (error) {
       const problem = getApiProblem(error)
       if (problem.errors.email) setError('email', { message: problem.errors.email })
@@ -49,27 +51,12 @@ export function LoginPage() {
       footer={
         <>
           Don&apos;t have an account?{' '}
-          <Link className="font-semibold text-blossom-600 hover:text-blossom-700" to="/register">
+          <Link className="font-semibold text-blossom-600 hover:text-blossom-700" state={location.state} to={{ pathname: '/register', search: location.search }}>
             Create an account
           </Link>
         </>
       }
     >
-      {session ? (
-        <div className="rounded-2xl border border-blossom-100 bg-blossom-50 p-5">
-          <p className="font-medium text-blossom-700">Hello, {session.user.name}</p>
-          <p className="mt-1 text-sm text-slate-600" role="status">
-            {success || 'You are already signed in.'}
-          </p>
-          <button
-            className="mt-4 text-sm font-semibold text-blossom-700 underline decoration-blossom-300 underline-offset-4"
-            onClick={logout}
-            type="button"
-          >
-            Sign out
-          </button>
-        </div>
-      ) : (
         <form className="space-y-5" noValidate onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label className="text-sm font-medium text-slate-700" htmlFor="email">
@@ -104,11 +91,6 @@ export function LoginPage() {
               {formError}
             </p>
           )}
-          {success && (
-            <p className="rounded-xl bg-blossom-50 px-4 py-3 text-sm text-blossom-700" role="status">
-              {success}
-            </p>
-          )}
           <button
             className="flex w-full items-center justify-center rounded-xl bg-blossom-600 px-5 py-3.5 text-sm font-semibold text-white transition hover:bg-blossom-700 focus:outline-none focus:ring-4 focus:ring-blossom-100 disabled:cursor-not-allowed disabled:opacity-60"
             disabled={isSubmitting}
@@ -117,7 +99,6 @@ export function LoginPage() {
             {isSubmitting ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
-      )}
     </AuthCard>
   )
 }

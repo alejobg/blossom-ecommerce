@@ -22,7 +22,8 @@ client.interceptors.response.use(
     if (axios.isAxiosError(error) && error.response?.status === 401) {
       clearAuthSession()
       if (window.location.pathname !== '/login') {
-        window.location.assign('/login')
+        const returnTo = `${window.location.pathname}${window.location.search}${window.location.hash}`
+        window.location.assign(`/login?${new URLSearchParams({ returnTo })}`)
       }
     }
     return Promise.reject(error)

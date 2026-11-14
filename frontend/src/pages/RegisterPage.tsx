@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { AuthCard } from '../components/AuthCard'
 import { getApiProblem } from '../api/problem'
 import { registerUser } from '../api/auth'
+import { getAuthRedirect } from '../routes/authRedirect'
 
 const registerSchema = z.object({
   name: z.string().trim().min(1, 'Please enter your name.').max(100, 'Name cannot exceed 100 characters.'),
@@ -33,7 +34,9 @@ const inputClassName =
 
 export function RegisterPage() {
   const [formError, setFormError] = useState('')
-  const [registered, setRegistered] = useState(false)
+  const location = useLocation()
+  const navigate = useNavigate()
+  const destination = getAuthRedirect(location.state, location.search)
   const {
     register,
     handleSubmit,
@@ -45,7 +48,7 @@ export function RegisterPage() {
     setFormError('')
     try {
       await registerUser(values)
-      setRegistered(true)
+      navigate(destination, { replace: true })
     } catch (error) {
       const problem = getApiProblem(error)
       if (problem.errors.name) setError('name', { message: problem.errors.name })
@@ -62,26 +65,12 @@ export function RegisterPage() {
       footer={
         <>
           Already have an account?{' '}
-          <Link className="font-semibold text-blossom-600 hover:text-blossom-700" to="/login">
+          <Link className="font-semibold text-blossom-600 hover:text-blossom-700" state={location.state} to={{ pathname: '/login', search: location.search }}>
             Sign in
           </Link>
         </>
       }
     >
-      {registered ? (
-        <div className="rounded-2xl border border-blossom-100 bg-blossom-50 p-5" role="status">
-          <p className="font-medium text-blossom-700">Your account is ready!</p>
-          <p className="mt-1 text-sm leading-6 text-slate-600">
-            You can now sign in with your new credentials.
-          </p>
-          <Link
-            className="mt-4 inline-block text-sm font-semibold text-blossom-700 underline decoration-blossom-300 underline-offset-4"
-            to="/login"
-          >
-            Go to sign in
-          </Link>
-        </div>
-      ) : (
         <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label className="text-sm font-medium text-slate-700" htmlFor="name">
@@ -138,7 +127,6 @@ export function RegisterPage() {
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
-      )}
     </AuthCard>
   )
 }
