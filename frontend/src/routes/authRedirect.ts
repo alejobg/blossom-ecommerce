@@ -2,11 +2,7 @@ import type { Location } from 'react-router-dom'
 
 export function authOrigin(location: Location) {
   return {
-    from: {
-      pathname: location.pathname,
-      search: location.search,
-      hash: location.hash,
-    },
+    from: `${location.pathname}${location.search}${location.hash}`,
   }
 }
 
@@ -20,18 +16,24 @@ function isAllowedPath(pathname: string): boolean {
     pathname !== '/register'
 }
 
+function safeRedirect(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('/') ||
+      value.startsWith('//') || value.includes('\\')) {
+    return '/'
+  }
+  const url = new URL(value, window.location.origin)
+  return url.origin === window.location.origin && isAllowedPath(url.pathname)
+    ? `${url.pathname}${url.search}${url.hash}`
+    : '/'
+}
+
 export function getAuthRedirect(state: unknown, search: string): string {
   if (typeof state !== 'object' || state === null || !('from' in state)) {
-    const returnTo = new URLSearchParams(search).get('returnTo')
-    if (!returnTo || !returnTo.startsWith('/') || returnTo.startsWith('//') || returnTo.includes('\\')) {
-      return '/'
-    }
-    const url = new URL(returnTo, window.location.origin)
-    return url.origin === window.location.origin && isAllowedPath(url.pathname)
-      ? `${url.pathname}${url.search}${url.hash}`
-      : '/'
+    return safeRedirect(new URLSearchParams(search).get('returnTo'))
   }
+
   const from = state.from
+  if (typeof from === 'string') return safeRedirect(from)
   if (typeof from !== 'object' || from === null || !('pathname' in from)) return '/'
 
   const { pathname } = from
@@ -47,5 +49,5 @@ export function getAuthRedirect(state: unknown, search: string): string {
   const hash = 'hash' in from && typeof from.hash === 'string' && from.hash.startsWith('#')
     ? from.hash
     : ''
-  return `${pathname}${fromSearch}${hash}`
+  return safeRedirect(`${pathname}${fromSearch}${hash}`)
 }

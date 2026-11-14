@@ -1,9 +1,11 @@
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useCart } from '../hooks/useCart'
 import { authOrigin } from '../routes/authRedirect'
 
 export function AppLayout() {
   const { session, logout } = useAuth()
+  const { itemCount, storageError } = useCart()
   const location = useLocation()
 
   return (
@@ -19,6 +21,9 @@ export function AppLayout() {
             </Link>
           </nav>
           <nav aria-label="Account" className="ml-auto flex items-center gap-4 text-sm font-medium">
+            <Link className="text-blossom-700 hover:underline" to="/cart">
+              Cart <span aria-label={`${itemCount} items in cart`} className="rounded-full bg-blossom-100 px-2 py-1 text-xs">{itemCount}</span>
+            </Link>
             {session ? (
               <>
                 <span className="text-slate-700">{session.user.name}</span>
@@ -38,6 +43,7 @@ export function AppLayout() {
           </nav>
         </div>
       </header>
+      {storageError && <p className="mx-auto max-w-7xl px-4 py-3 text-sm text-red-700" role="alert">{storageError}</p>}
       <Outlet />
     </div>
   )

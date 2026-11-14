@@ -1,11 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { loginUser, registerUser } from '../api/auth'
 import { getProductById, searchProducts } from '../api/products'
 import { AUTH_STORAGE_KEY } from '../api/sessionStorage'
 import { AuthProvider } from '../context/AuthContext'
+import { CartProvider } from '../context/CartContext'
 import { AppRouteTree } from '../routes/AppRoutes'
 import type { AuthResponse, UserResponse } from '../types/auth'
 
@@ -34,16 +35,25 @@ const authResponse: AuthResponse = {
 }
 
 function LocationProbe() {
-  const { pathname, search, hash } = useLocation()
-  return <div data-testid="location">{pathname}{search}{hash}</div>
+  const { pathname, search, hash, state } = useLocation()
+  const navigate = useNavigate()
+  return (
+    <>
+      <div data-testid="location">{pathname}{search}{hash}</div>
+      <div data-testid="route-state">{JSON.stringify(state)}</div>
+      <button onClick={() => navigate(-1)}>Go back</button>
+    </>
+  )
 }
 
-function renderApp(path: string) {
+function renderApp(path: string | { pathname: string; state: { from: string } }) {
   return render(
     <MemoryRouter initialEntries={[path]}>
       <AuthProvider>
-        <AppRouteTree />
-        <LocationProbe />
+        <CartProvider>
+          <AppRouteTree />
+          <LocationProbe />
+        </CartProvider>
       </AuthProvider>
     </MemoryRouter>,
   )
@@ -79,9 +89,10 @@ describe('authentication pages', () => {
     })
   })
 
-  it('registers and redirects to the catalog without creating a local session', async () => {
+  it('registers, signs in, and redirects to the catalog', async () => {
     const user = userEvent.setup()
     vi.mocked(registerUser).mockResolvedValue(customer)
+    vi.mocked(loginUser).mockResolvedValue(authResponse)
     renderApp('/register')
 
     await user.type(screen.getByLabelText('Name'), customer.name)
@@ -94,10 +105,11 @@ describe('authentication pages', () => {
       email: customer.email,
       password: 'secret123',
     })
+    expect(loginUser).toHaveBeenCalledWith({ email: customer.email, password: 'secret123' })
     expect(await screen.findByRole('heading', { name: 'The collection' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
-    expect(screen.getByRole('link', { name: 'Sign in' })).toBeInTheDocument()
-    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    expect(screen.getByText(customer.name)).toBeInTheDocument()
+    expect(JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? 'null')).toEqual(authResponse)
   })
 
   it('returns to the originating detail URL after signing in', async () => {
@@ -144,6 +156,7 @@ describe('authentication pages', () => {
   it('preserves the originating URL when switching to registration', async () => {
     const user = userEvent.setup()
     vi.mocked(registerUser).mockResolvedValue(customer)
+    vi.mocked(loginUser).mockResolvedValue(authResponse)
     renderApp('/products/12?ref=home')
 
     await user.click(screen.getByRole('link', { name: 'Sign in' }))
@@ -155,7 +168,92 @@ describe('authentication pages', () => {
 
     expect(await screen.findByRole('heading', { name: 'Ceramic mug' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent('/products/12?ref=home')
-    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    expect(JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) ?? 'null')).toEqual(authResponse)
+  })
+
+  it('redirects to a string origin in router state after login', async () => {
+    const user = userEvent.setup()
+    vi.mocked(loginUser).mockResolvedValue(authResponse)
+    renderApp({ pathname: '/login', state: { from: '/products/12?ref=home#details' } })
+
+    await user.type(screen.getByLabelText('Email address'), customer.email)
+    await user.type(screen.getByLabelText('Password'), 'secret123')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { name: 'Ceramic mug' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/products/12?ref=home#details')
+  })
+
+  it('replaces the login history entry after signing in', async () => {
+    const user = userEvent.setup()
+    vi.mocked(loginUser).mockResolvedValue(authResponse)
+    render(
+      <MemoryRouter initialEntries={['/', { pathname: '/login', state: { from: '/cart' } }]} initialIndex={1}>
+        <AuthProvider><CartProvider><AppRouteTree /><LocationProbe /></CartProvider></AuthProvider>
+      </MemoryRouter>,
+    )
+    await user.type(screen.getByLabelText('Email address'), customer.email)
+    await user.type(screen.getByLabelText('Password'), 'secret123')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(await screen.findByRole('heading', { name: 'Your cart' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Go back' }))
+    expect(await screen.findByRole('heading', { name: 'The collection' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+  })
+
+  it('returns to a protected order URL after logging in', async () => {
+    const user = userEvent.setup()
+    vi.mocked(loginUser).mockResolvedValue(authResponse)
+    renderApp('/orders/99?ref=cart#summary')
+
+    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument()
+    expect(JSON.parse(screen.getByTestId('route-state').textContent ?? '{}')).toEqual({
+      from: '/orders/99?ref=cart#summary',
+    })
+    await user.type(screen.getByLabelText('Email address'), customer.email)
+    await user.type(screen.getByLabelText('Password'), 'secret123')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+    expect(await screen.findByRole('heading', { name: 'Order #99' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/orders/99?ref=cart#summary')
+  })
+
+  it('returns to a protected order URL after registering', async () => {
+    const user = userEvent.setup()
+    vi.mocked(registerUser).mockResolvedValue(customer)
+    vi.mocked(loginUser).mockResolvedValue(authResponse)
+    renderApp('/orders/99?ref=cart#summary')
+
+    await user.click(screen.getByRole('link', { name: 'Create an account' }))
+    await user.type(screen.getByLabelText('Name'), customer.name)
+    await user.type(screen.getByLabelText('Email address'), customer.email)
+    await user.type(screen.getByLabelText('Password'), 'secret123')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(await screen.findByRole('heading', { name: 'Order #99' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/orders/99?ref=cart#summary')
+  })
+
+  it('allows manual sign-in when automatic login after registration fails', async () => {
+    const user = userEvent.setup()
+    vi.mocked(registerUser).mockResolvedValue(customer)
+    vi.mocked(loginUser).mockRejectedValue(new Error('Login failed'))
+    renderApp({ pathname: '/register', state: { from: '/cart' } })
+
+    await user.type(screen.getByLabelText('Name'), customer.name)
+    await user.type(screen.getByLabelText('Email address'), customer.email)
+    await user.type(screen.getByLabelText('Password'), 'secret123')
+    await user.click(screen.getByRole('button', { name: 'Create account' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your account was created, but sign-in failed')
+    expect(screen.queryByRole('button', { name: 'Create account' })).not.toBeInTheDocument()
+    await user.click(screen.getAllByRole('link', { name: 'Sign in' })[0])
+    vi.mocked(loginUser).mockResolvedValue(authResponse)
+    await user.type(screen.getByLabelText('Email address'), customer.email)
+    await user.type(screen.getByLabelText('Password'), 'secret123')
+    await user.click(screen.getByRole('button', { name: 'Sign in' }))
+    expect(await screen.findByRole('heading', { name: 'Your cart' })).toBeInTheDocument()
   })
 
   it.each(['/login', '/register'])('redirects an existing session away from %s', async (path) => {
@@ -165,6 +263,30 @@ describe('authentication pages', () => {
     expect(await screen.findByRole('heading', { name: 'The collection' })).toBeInTheDocument()
     expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
     expect(screen.getByText(customer.name)).toBeInTheDocument()
+  })
+
+  it.each(['/login', '/register'])('preserves the origin for an existing session on %s', async (path) => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authResponse))
+    renderApp({ pathname: path, state: { from: '/cart?ref=checkout#items' } })
+
+    expect(await screen.findByRole('heading', { name: 'Your cart' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/cart?ref=checkout#items')
+  })
+
+  it.each(['/login', '/register'])('uses a safe returnTo for an existing session on %s', async (path) => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authResponse))
+    renderApp(`${path}?${new URLSearchParams({ returnTo: '/cart?ref=checkout#items' })}`)
+
+    expect(await screen.findByRole('heading', { name: 'Your cart' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent('/cart?ref=checkout#items')
+  })
+
+  it.each(['/login', '/register'])('rejects an external origin for an existing session on %s', async (path) => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authResponse))
+    renderApp({ pathname: path, state: { from: '//example.com/' } })
+
+    expect(await screen.findByRole('heading', { name: 'The collection' })).toBeInTheDocument()
+    expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
   })
 
   it('shows the public catalog header and updates it when signing out', async () => {

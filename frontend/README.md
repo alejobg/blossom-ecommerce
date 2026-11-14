@@ -1,9 +1,14 @@
 # React + TypeScript + Vite
 
 The public product catalog is available at `/`. Sign-in and registration return to
-the originating page when available, including after a session expires, or to the catalog otherwise. Registration
-creates an account but does not sign the user in; the backend returns a token only
-from the login endpoint.
+the originating page when available, including after a session expires, or to the
+catalog otherwise. After registration, the frontend signs in through the login
+endpoint to obtain a token. If sign-in fails, the user can sign in manually.
+
+The cart is stored in localStorage along with the last known stock for each product.
+Checkout requires a customer account; the server checks current prices and stock.
+Signing in preserves a guest cart. Signing out or losing an authenticated session
+after a 401 clears the cart, including its saved contents.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

@@ -6,6 +6,7 @@ import { getProductById, searchProducts } from '../api/products'
 import type { PagedResponse, Product } from '../types/product'
 import { ProductDetailPage } from './ProductDetailPage'
 import { ProductListPage } from './ProductListPage'
+import { CartProvider } from '../context/CartContext'
 
 vi.mock('../api/products', () => ({
   getProductById: vi.fn(),
@@ -52,9 +53,11 @@ function renderProductList(path = '/products') {
 function renderProductDetail(path = '/products/12') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route element={<ProductDetailPage />} path="/products/:id" />
-      </Routes>
+      <CartProvider>
+        <Routes>
+          <Route element={<ProductDetailPage />} path="/products/:id" />
+        </Routes>
+      </CartProvider>
     </MemoryRouter>,
   )
 }
@@ -172,7 +175,20 @@ describe('product catalog pages', () => {
     vi.mocked(getProductById).mockResolvedValue(product)
     await user.click(screen.getByRole('button', { name: 'Try again' }))
 
-    expect(await screen.findByRole('button', { name: 'Add to cart' })).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Add to cart' })).toBeEnabled()
+    expect(screen.getByText('$18.50')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Add to cart' }))
+    expect(screen.getByRole('status')).toHaveTextContent('Added to your cart.')
+  })
+
+  it('prevents adding more than the stock shown on the product detail', async () => {
+    const user = userEvent.setup()
+    vi.mocked(getProductById).mockResolvedValue({ ...product, stock: 1 })
+    renderProductDetail()
+
+    await user.click(await screen.findByRole('button', { name: 'Add to cart' }))
+    expect(screen.getByRole('button', { name: 'Add to cart' })).toBeDisabled()
+    expect(screen.getByText('The maximum available quantity is in your cart.')).toBeInTheDocument()
   })
 
   it('updates the URL when moving between product pages', async () => {

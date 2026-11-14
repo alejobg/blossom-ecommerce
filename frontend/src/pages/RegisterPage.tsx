@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { AuthCard } from '../components/AuthCard'
 import { getApiProblem } from '../api/problem'
 import { registerUser } from '../api/auth'
+import { useAuth } from '../hooks/useAuth'
 import { getAuthRedirect } from '../routes/authRedirect'
 
 const registerSchema = z.object({
@@ -34,6 +35,8 @@ const inputClassName =
 
 export function RegisterPage() {
   const [formError, setFormError] = useState('')
+  const [accountCreated, setAccountCreated] = useState(false)
+  const { login } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
   const destination = getAuthRedirect(location.state, location.search)
@@ -48,13 +51,20 @@ export function RegisterPage() {
     setFormError('')
     try {
       await registerUser(values)
-      navigate(destination, { replace: true })
     } catch (error) {
       const problem = getApiProblem(error)
       if (problem.errors.name) setError('name', { message: problem.errors.name })
       if (problem.errors.email) setError('email', { message: problem.errors.email })
       if (problem.errors.password) setError('password', { message: problem.errors.password })
       setFormError(problem.detail)
+      return
+    }
+    try {
+      await login({ email: values.email, password: values.password })
+      navigate(destination, { replace: true })
+    } catch (error) {
+      setAccountCreated(true)
+      setFormError(`Your account was created, but sign-in failed: ${getApiProblem(error).detail}`)
     }
   }
 
@@ -71,6 +81,20 @@ export function RegisterPage() {
         </>
       }
     >
+      {accountCreated ? (
+        <div className="space-y-4">
+          <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+            {formError}
+          </p>
+          <Link
+            className="font-semibold text-blossom-600 hover:text-blossom-700"
+            state={location.state}
+            to={{ pathname: '/login', search: location.search }}
+          >
+            Sign in
+          </Link>
+        </div>
+      ) : (
         <form className="space-y-4" noValidate onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label className="text-sm font-medium text-slate-700" htmlFor="name">
@@ -127,6 +151,7 @@ export function RegisterPage() {
             {isSubmitting ? 'Creating account…' : 'Create account'}
           </button>
         </form>
+      )}
     </AuthCard>
   )
 }

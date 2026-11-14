@@ -43,6 +43,7 @@ export function saveAuthSession(session: AuthSession): void {
 }
 
 export function clearAuthSession(): void {
+  const hadSession = getStoredAuthSession() !== null
   localStorage.removeItem(AUTH_STORAGE_KEY)
-  window.dispatchEvent(new Event(AUTH_SESSION_CLEARED_EVENT))
+  window.dispatchEvent(new CustomEvent(AUTH_SESSION_CLEARED_EVENT, { detail: { hadSession } }))
 }

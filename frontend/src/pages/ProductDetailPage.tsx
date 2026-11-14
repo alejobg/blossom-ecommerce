@@ -3,6 +3,8 @@ import axios from 'axios'
 import { Link, useParams } from 'react-router-dom'
 import { getApiProblem } from '../api/problem'
 import { getProductById } from '../api/products'
+import { AddToCart } from '../components/AddToCart'
+import { useCart } from '../hooks/useCart'
 import { PRODUCT_CATEGORY_LABELS, type Product } from '../types/product'
 import { formatPrice } from '../utils/formatPrice'
 
@@ -16,6 +18,7 @@ type ProductDetailRequest =
 
 export function ProductDetailPage() {
   const { id = '' } = useParams()
+  const { updateStock } = useCart()
   const [retryKey, setRetryKey] = useState(0)
   const requestKey = `${id}:${retryKey}`
   const [request, setRequest] = useState<ProductDetailRequest>({
@@ -40,7 +43,10 @@ export function ProductDetailPage() {
     let active = true
     getProductById(id)
       .then((response) => {
-        if (active) setRequest({ key: requestKey, status: 'success', product: response })
+        if (active) {
+          updateStock(response.id, response.stock)
+          setRequest({ key: requestKey, status: 'success', product: response })
+        }
       })
       .catch((requestError: unknown) => {
         if (!active) return
@@ -58,7 +64,7 @@ export function ProductDetailPage() {
     return () => {
       active = false
     }
-  }, [id, requestKey])
+  }, [id, requestKey, updateStock])
 
   return (
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
@@ -107,14 +113,7 @@ export function ProductDetailPage() {
               <p className="mt-5 text-2xl font-semibold text-blossom-700">{formatPrice(product.price)}</p>
               <p className="mt-6 leading-7 text-slate-600">{product.description}</p>
               <p className="mt-5 text-sm text-slate-500">In stock: {product.stock}</p>
-              <button
-                className="mt-8 w-full cursor-not-allowed rounded-xl bg-blossom-600 px-5 py-3.5 text-sm font-semibold text-white opacity-60 sm:w-auto"
-                disabled
-                type="button"
-              >
-                Add to cart
-              </button>
-              <p className="mt-3 text-xs text-slate-400">Cart functionality is coming soon.</p>
+              <AddToCart key={product.id} product={product} />
             </div>
           </article>
         )}

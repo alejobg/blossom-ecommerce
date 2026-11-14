@@ -38,3 +38,19 @@ it('clears the session and preserves the current URL when a request returns 401'
     `/login?${new URLSearchParams({ returnTo: '/products/12?ref=home#details' })}`,
   )
 })
+
+it('does not redirect away from registration when automatic sign-in returns 401', async () => {
+  const assign = vi.fn()
+  vi.stubGlobal('window', {
+    location: { pathname: '/register', search: '', hash: '', assign },
+    dispatchEvent: vi.fn(),
+  })
+  client.defaults.adapter = async (config) => {
+    throw new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', config, undefined, {
+      status: 401, statusText: 'Unauthorized', headers: {}, config, data: {},
+    })
+  }
+
+  await expect(client.post('/auth/login', {})).rejects.toBeInstanceOf(AxiosError)
+  expect(assign).not.toHaveBeenCalled()
+})
