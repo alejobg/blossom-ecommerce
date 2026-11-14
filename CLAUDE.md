@@ -31,13 +31,17 @@ Hexagonal, un paquete por módulo (`com.blossom.ecommerce.<modulo>`):
 - Usar `module product` como plantilla de estilo y estructura de tests.
 
 ## Estado
-- [x] Esqueleto, docker-compose, Dockerfile, módulo `product` (CRUD, búsqueda por nombre/categoría/rango de precio,
-      soft delete) — 69 tests en verde, cobertura > 80%.
-- [x] Módulo `user` + seguridad JWT — 145 tests en total en verde, cobertura de líneas ~99%.
-- [x] Repo en GitHub (`origin/main`, https://github.com/alejobg/blossom-ecommerce): commit inicial con `product` + `user`.
-- [x] Módulo `order` — 210 tests en total en verde, cobertura de líneas ~99%.
-- [ ] Frontend (siguiente).
-- [ ] README final, preguntas teóricas, capturas o video.
+- [x] **Backend completo**: `product` (CRUD, búsqueda, soft delete), `user` (registro, login, JWT), `order`
+      (checkout con reserva de stock y bloqueo pesimista, historial) y CORS para el frontend
+      (`app.cors.allowed-origins`, por defecto `http://localhost:5173`, probado en `CorsConfigTest`).
+      213 tests en verde, cobertura de líneas ~99%. Repo: https://github.com/alejobg/blossom-ecommerce (`main`).
+- [ ] **Frontend en progreso con Copilot** en `frontend/`. NO tocar esa carpeta desde aquí
+      (tampoco `.github/` ni los `package.json`/`package-lock.json` de la raíz: no hacer commit de ellos).
+- [ ] Pendientes antes de entregar:
+  - [ ] Mover el secreto JWT y la contraseña del admin a variables de entorno, con `.env.example`.
+  - [ ] README final.
+  - [ ] Preguntas teóricas en un documento aparte.
+  - [ ] Capturas o video del flujo completo.
 
 ## Módulo `user` (hecho)
 - `User` sealed abstracto -> `Customer` | `Admin`, JPA `SINGLE_TABLE` (`role` = discriminador). `Email` value object.
