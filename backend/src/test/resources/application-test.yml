@@ -1,0 +1,7 @@
+spring:
+  flyway:
+    locations: classpath:db/migration   # no demo seed: tests own their data
+  jpa:
+    properties:
+      hibernate:
+        format_sql: false
