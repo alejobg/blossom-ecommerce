@@ -44,8 +44,10 @@ function QueryProbe() {
 function renderProductList(path = '/products') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <ProductListPage />
-      <QueryProbe />
+      <CartProvider>
+        <ProductListPage />
+        <QueryProbe />
+      </CartProvider>
     </MemoryRouter>,
   )
 }
