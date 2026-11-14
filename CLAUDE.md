@@ -34,8 +34,9 @@ Hexagonal, un paquete por módulo (`com.blossom.ecommerce.<modulo>`):
 - [x] Esqueleto, docker-compose, Dockerfile, módulo `product` (CRUD, búsqueda por nombre/categoría/rango de precio,
       soft delete) — 69 tests en verde, cobertura > 80%.
 - [x] Módulo `user` + seguridad JWT — 145 tests en total en verde, cobertura de líneas ~99%.
-- [ ] Módulo `order` (siguiente).
-- [ ] Frontend.
+- [x] Repo en GitHub (`origin/main`, https://github.com/alejobg/blossom-ecommerce): commit inicial con `product` + `user`.
+- [x] Módulo `order` — 210 tests en total en verde, cobertura de líneas ~99%.
+- [ ] Frontend (siguiente).
 - [ ] README final, preguntas teóricas, capturas o video.
 
 ## Módulo `user` (hecho)
@@ -46,7 +47,11 @@ Hexagonal, un paquete por módulo (`com.blossom.ecommerce.<modulo>`):
 - Tests `@WebMvcTest` necesitan `@Import(SecurityConfig.class)`; usar `@WithMockUser(roles = ...)` o un token real de `JwtService`.
   Tests de integración que limpian usuarios: `DELETE FROM users WHERE role = 'CUSTOMER'` (no borrar el admin).
 
-## Plan del módulo `order`
-- `Order` con `OrderItem` (cantidad y precio unitario congelado al momento de la compra), no `@ManyToMany`.
-- Crear una orden valida stock y lo descuenta (`Product.decreaseStock`) en la misma transacción.
-- Historial de órdenes del usuario autenticado.
+## Módulo `order` (hecho)
+- `Order` (inmutable, total calculado) con `OrderItem` (nombre y precio unitario congelados). Migración `V4`.
+- `OrderService` usa `ProductUseCase.reserveStock` (`Propagation.MANDATORY`); nunca el repositorio de product.
+- Bloqueo pesimista `PESSIMISTIC_WRITE` ordenado por id en `ProductJpaRepository.findActiveByIdInForUpdate`.
+- `InsufficientStockException` (en `shared/domain`) -> 409 con `productId`, `requested`, `available`.
+- `/api/v1/orders/**` solo CUSTOMER; orden ajena -> 404. Historial en dos queries (ids paginados + `@EntityGraph`).
+- Tests de integración con órdenes: limpiar `orders`/`order_items` en `@AfterEach`, porque otros tests borran
+  clientes y productos (FKs).

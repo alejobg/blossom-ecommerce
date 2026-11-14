@@ -1,6 +1,7 @@
 package com.blossom.ecommerce.product.domain;
 
 import com.blossom.ecommerce.shared.domain.DomainValidationException;
+import com.blossom.ecommerce.shared.domain.InsufficientStockException;
 
 import java.math.BigDecimal;
 import java.util.Objects;
@@ -60,8 +61,7 @@ public class Product {
             throw new DomainValidationException("quantity must be greater than 0");
         }
         if (stock < quantity) {
-            throw new DomainValidationException(
-                    "Insufficient stock for product '%s': requested %d, available %d".formatted(name, quantity, stock));
+            throw new InsufficientStockException(id, name, quantity, stock);
         }
         stock -= quantity;
     }

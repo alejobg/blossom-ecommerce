@@ -5,6 +5,8 @@ import com.blossom.ecommerce.product.domain.ProductFilter;
 import com.blossom.ecommerce.shared.domain.PageQuery;
 import com.blossom.ecommerce.shared.domain.PageResult;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,4 +20,11 @@ public interface ProductRepositoryPort {
     Optional<Product> findActiveById(Long id);
 
     PageResult<Product> searchActive(ProductFilter filter, PageQuery pageQuery);
+
+    /**
+     * Loads the active products with these ids and locks their rows until the transaction ends
+     * (SELECT ... FOR UPDATE), in ascending id order so concurrent buyers lock in the same order
+     * and cannot deadlock. Missing or inactive ids are simply absent from the result.
+     */
+    List<Product> findActiveByIdsForUpdate(Collection<Long> ids);
 }

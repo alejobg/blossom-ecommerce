@@ -2,6 +2,7 @@ package com.blossom.ecommerce.shared.exception;
 
 import com.blossom.ecommerce.shared.domain.ConflictException;
 import com.blossom.ecommerce.shared.domain.DomainValidationException;
+import com.blossom.ecommerce.shared.domain.InsufficientStockException;
 import com.blossom.ecommerce.shared.domain.InvalidCredentialsException;
 import com.blossom.ecommerce.shared.domain.ResourceNotFoundException;
 import org.slf4j.Logger;
@@ -44,6 +45,16 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ProblemDetail handleConflict(ConflictException ex) {
         return problem(HttpStatus.CONFLICT, "Conflict", ex.getMessage());
+    }
+
+    /** More specific than {@link ConflictException}: adds which product failed and how many units are left. */
+    @ExceptionHandler(InsufficientStockException.class)
+    public ProblemDetail handleInsufficientStock(InsufficientStockException ex) {
+        ProblemDetail problem = problem(HttpStatus.CONFLICT, "Insufficient stock", ex.getMessage());
+        problem.setProperty("productId", ex.getProductId());
+        problem.setProperty("requested", ex.getRequested());
+        problem.setProperty("available", ex.getAvailable());
+        return problem;
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)

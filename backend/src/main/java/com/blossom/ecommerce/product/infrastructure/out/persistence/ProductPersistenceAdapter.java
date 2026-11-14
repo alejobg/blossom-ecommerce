@@ -11,6 +11,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -52,5 +54,13 @@ class ProductPersistenceAdapter implements ProductRepositoryPort {
                 page.getSize(),
                 page.getTotalElements(),
                 page.getTotalPages());
+    }
+
+    @Override
+    public List<Product> findActiveByIdsForUpdate(Collection<Long> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return jpaRepository.findActiveByIdInForUpdate(ids).stream().map(ProductPersistenceMapper::toDomain).toList();
     }
 }

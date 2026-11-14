@@ -2,8 +2,8 @@
 
 Full-stack e-commerce case: **Java 21 + Spring Boot 3 + PostgreSQL** backend and **React + Vite + TypeScript** frontend.
 
-> Work in progress. Done so far: project skeleton, `product` (CRUD + search) and `user` (sign-up, login, JWT) with tests.
-> Next: `order`, frontend.
+> Work in progress. Done so far: the backend: `product` (CRUD + search), `user` (sign-up, login, JWT) and
+> `order` (checkout with stock reservation, purchase history), with tests. Next: frontend.
 
 ## Run locally
 
@@ -60,11 +60,18 @@ com.blossom.ecommerce
 │   └── infrastructure/
 │       ├── in/rest/             AuthController, UserController
 │       └── out/                 persistence (SINGLE_TABLE entities), security (BCrypt, JWT adapters)
+├── order/
+│   ├── domain/                  Order, OrderItem (frozen name and unit price, computed total)
+│   │   └── port/in | port/out   OrderUseCase, PlaceOrderCommand, OrderRepositoryPort
+│   ├── application/             OrderService (uses ProductUseCase.reserveStock, never product's repository)
+│   └── infrastructure/
+│       ├── in/rest/             OrderController, DTOs, mapper
+│       └── out/persistence/     OrderEntity 1-* OrderItemEntity, two-query history (no N+1)
 └── shared/                      BaseEntity, domain exceptions, pagination, error handler,
                                  security/ (SecurityConfig, JwtService, JWT filter)
 ```
 
-## Endpoints (so far)
+## Endpoints
 
 | Method | Path | Access | Description |
 |---|---|---|---|
@@ -76,6 +83,13 @@ com.blossom.ecommerce
 | POST | `/api/v1/products` | ADMIN | Create |
 | PUT | `/api/v1/products/{id}` | ADMIN | Update |
 | DELETE | `/api/v1/products/{id}` | ADMIN | Remove from catalog (soft delete) |
+| POST | `/api/v1/orders` | CUSTOMER | Place an order: body `{"items": [{"productId": 1, "quantity": 2}]}` |
+| GET | `/api/v1/orders?page=&size=` | CUSTOMER | Own orders, most recent first |
+| GET | `/api/v1/orders/{id}` | CUSTOMER | Own order detail (404 if it belongs to someone else) |
+
+Placing an order returns `201` with the order, or: `400` for an invalid body (no items, quantity < 1, the same
+product twice), `404` if a product does not exist or was removed, and `409` if there is not enough stock. The 409
+problem detail says which product failed: `{"title": "Insufficient stock", "productId": 3, "requested": 5, "available": 2, ...}`.
 
 Authenticated requests send `Authorization: Bearer <accessToken>`. In Swagger UI, use the **Authorize** button.
 
@@ -100,4 +114,23 @@ validation errors add an `errors` map per field.
 - **Account safety:** emails are normalized (case-insensitive and unique, enforced by a DB constraint as well),
   passwords need 8+ characters with letters and digits and at most 72 bytes (BCrypt's limit), login gives the same
   error for an unknown email and a wrong password, and records holding secrets mask them in `toString()`.
+- **Orders trust nothing from the client but product ids and quantities.** The customer comes from the token,
+  and name and price come from the catalog. `OrderItem` keeps a copy of the name and unit price, so a later price change
+  or a removed product does not alter past orders. The domain computes subtotals and the total.
+- **Modules talk through use cases.** `OrderService` calls `ProductUseCase.reserveStock(...)`, which validates the
+  products (exist, active, enough stock), decreases stock and returns the current name and price. The order module never
+  touches the product tables or repository.
+- **One transaction per order.** `reserveStock` runs with `Propagation.MANDATORY`, so it always joins the caller's
+  transaction. If any line fails, or saving the order fails, everything rolls back: no stock is taken and no order
+  is stored. All lines are checked in memory before anything is written.
+- **Concurrency: pessimistic locking.** Two customers buying the last unit at the same time must not both succeed.
+  Reading the products uses `PESSIMISTIC_WRITE` (`SELECT ... FOR UPDATE`): the second buyer waits until the first
+  transaction commits and then sees the updated stock. Rows are locked **in ascending id order**, so two orders with
+  the same products listed in a different order cannot deadlock. This was chosen over optimistic locking (`@Version`)
+  because checkout contention on popular products is expected, and optimistic locking would turn it into failures the
+  client must retry. Locks are held only for the short checkout transaction. The `CHECK (stock >= 0)` constraint stays
+  as a last line of defense. Integration tests fire concurrent purchases to verify both properties.
+- **Other customers' orders answer 404, not 403**, so the API does not reveal which order ids exist.
+- **History without N+1.** Paging a collection fetch join would make Hibernate paginate in memory. The history first
+  pages over order ids, then loads those orders with their items in one query (`@EntityGraph`): two queries for any page size.
 - **Tests on real PostgreSQL** (Testcontainers) instead of H2, to avoid dialect differences.

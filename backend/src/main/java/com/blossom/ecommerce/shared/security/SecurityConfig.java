@@ -27,7 +27,8 @@ import java.util.List;
  * <ul>
  *   <li>public: sign-up, login, catalog reads, API docs</li>
  *   <li>ADMIN only: catalog writes</li>
- *   <li>any authenticated user: everything else (profile, orders)</li>
+ *   <li>CUSTOMER only: orders (placing them and the purchase history)</li>
+ *   <li>any authenticated user: everything else (profile)</li>
  * </ul>
  */
 @Configuration
@@ -36,6 +37,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String PRODUCTS = "/api/v1/products/**";
+    private static final String ORDERS = "/api/v1/orders/**";
     private static final String[] API_DOCS = {"/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**"};
 
     @Bean
@@ -69,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, PRODUCTS).permitAll()
                         .requestMatchers(PRODUCTS).hasRole("ADMIN")
+                        .requestMatchers(ORDERS).hasRole("CUSTOMER")
                         .anyRequest().authenticated())
                 .addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class)
                 .build();

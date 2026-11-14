@@ -1,6 +1,7 @@
 package com.blossom.ecommerce.product.domain;
 
 import com.blossom.ecommerce.shared.domain.DomainValidationException;
+import com.blossom.ecommerce.shared.domain.InsufficientStockException;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -158,8 +159,12 @@ class ProductTest {
             Product product = product();
 
             assertThatThrownBy(() -> product.decreaseStock(4))
-                    .isInstanceOf(DomainValidationException.class)
-                    .hasMessageContaining("Insufficient stock");
+                    .isInstanceOfSatisfying(InsufficientStockException.class, ex -> {
+                        assertThat(ex.getProductId()).isEqualTo(1L);
+                        assertThat(ex.getRequested()).isEqualTo(4);
+                        assertThat(ex.getAvailable()).isEqualTo(3);
+                    })
+                    .hasMessage("Insufficient stock for product 'Lamp' (id 1): requested 4, available 3");
             assertThat(product.getStock()).isEqualTo(3);
         }
 

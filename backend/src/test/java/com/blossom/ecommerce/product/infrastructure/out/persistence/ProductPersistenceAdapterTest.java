@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -135,6 +136,22 @@ class ProductPersistenceAdapterTest {
                 new ProductFilter("o", ProductCategory.CLOTHING, null, new BigDecimal("50")), FIRST_PAGE);
 
         assertThat(result.content()).extracting(Product::getId).containsExactly(tShirt.getId());
+    }
+
+    @Test
+    void findForUpdateReturnsActiveProductsSortedByIdAndSkipsInactiveOnes() {
+        tShirt.deactivate();
+        adapter.save(tShirt);
+
+        List<Product> locked = adapter.findActiveByIdsForUpdate(
+                List.of(headphones.getId(), tShirt.getId(), lamp.getId(), 9999L));
+
+        assertThat(locked).extracting(Product::getId).containsExactly(lamp.getId(), headphones.getId());
+    }
+
+    @Test
+    void findForUpdateWithNoIdsReturnsEmpty() {
+        assertThat(adapter.findActiveByIdsForUpdate(List.of())).isEmpty();
     }
 
     @Test
