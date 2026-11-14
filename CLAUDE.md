@@ -59,3 +59,9 @@ Hexagonal, un paquete por módulo (`com.blossom.ecommerce.<modulo>`):
 - `/api/v1/orders/**` solo CUSTOMER; orden ajena -> 404. Historial en dos queries (ids paginados + `@EntityGraph`).
 - Tests de integración con órdenes: limpiar `orders`/`order_items` en `@AfterEach`, porque otros tests borran
   clientes y productos (FKs).
+
+## Git
+- Este repo lo comparten dos agentes: Claude Code (backend) y Copilot (frontend).
+- Agregar solo rutas de backend/, docs/, README.md, CLAUDE.md o docker-compose.yml.
+  Nunca usar `git add .` ni `git add -A`. Nunca agregar frontend/ ni .github/.
+- No hacer push salvo que el usuario lo pida.
