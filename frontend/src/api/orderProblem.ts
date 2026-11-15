@@ -27,10 +27,15 @@ export function getOrderProblem(error: unknown, items: CartItem[]): {
     }
   }
   if (status === 404) {
-    const match = /^Product with id (\d+) was not found$/.exec(detail)
-    if (match) {
-      const item = items.find((entry) => entry.productId === Number(match[1]))
-      const name = item?.name ?? `Product #${match[1]}`
+    let productId = data?.productId
+    if (typeof productId !== 'number' || !Number.isSafeInteger(productId) || productId <= 0) {
+      // Temporary fallback until the backend includes productId in every product 404.
+      const match = /^Product with id (\d+) was not found$/.exec(detail)
+      productId = match ? Number(match[1]) : undefined
+    }
+    if (typeof productId === 'number' && Number.isSafeInteger(productId) && productId > 0) {
+      const item = items.find((entry) => entry.productId === productId)
+      const name = item?.name ?? `Product #${productId}`
       return { message: `${detail} ${name} is unavailable. Please remove it from your cart.` }
     }
     return { message: `${detail} Please remove the unavailable product from your cart.` }

@@ -4,12 +4,18 @@ import { useAuth } from '../hooks/useAuth'
 import type { UserResponse } from '../types/auth'
 import { authOrigin } from './authRedirect'
 
-export function ProtectedRoute({ allowedRole }: { allowedRole?: UserResponse['role'] }) {
+export function ProtectedRoute({
+  allowedRole,
+  deniedMessage,
+}: {
+  allowedRole?: UserResponse['role']
+  deniedMessage: string
+}) {
   const { session } = useAuth()
   const location = useLocation()
   if (!session) return <Navigate replace state={authOrigin(location)} to="/login" />
   if (allowedRole && session.user.role !== allowedRole) {
-    return <AccessDenied message="Only customer accounts can view orders." />
+    return <AccessDenied message={deniedMessage} />
   }
   return <Outlet />
 }

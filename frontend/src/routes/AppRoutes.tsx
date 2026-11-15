@@ -22,7 +22,7 @@ export function AppRouteTree() {
         <Route element={<ProductListPage />} path="/products" />
         <Route element={<ProductDetailPage />} path="/products/:id" />
         <Route element={<CartPage />} path="/cart" />
-        <Route element={<ProtectedRoute allowedRole="CUSTOMER" />}>
+        <Route element={<ProtectedRoute allowedRole="CUSTOMER" deniedMessage="Only customer accounts can view orders." />}>
           <Route element={<OrderHistoryPage />} path="/orders" />
           <Route element={<OrderDetailPage />} path="/orders/:id" />
         </Route>

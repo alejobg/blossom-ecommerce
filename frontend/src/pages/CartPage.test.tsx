@@ -181,6 +181,21 @@ it('identifies an unavailable product on 404 without clearing the cart', async (
   expect(screen.getByText('$69.98')).toBeInTheDocument()
 })
 
+it('identifies an unavailable product using the 404 response productId', async () => {
+  const user = userEvent.setup()
+  saveCart()
+  saveSession()
+  vi.mocked(placeOrder).mockRejectedValue({
+    isAxiosError: true,
+    response: { status: 404, data: { detail: 'A product is unavailable.', productId: 42 } },
+  })
+  renderCart()
+
+  await user.click(screen.getByRole('button', { name: 'Place order' }))
+  expect(await screen.findByRole('alert')).toHaveTextContent('Mug is unavailable. Please remove it')
+  expect(screen.getByText('$69.98')).toBeInTheDocument()
+})
+
 it('posts only product IDs and quantities, then clears the cart and opens the order', async () => {
   const user = userEvent.setup()
   saveCart()

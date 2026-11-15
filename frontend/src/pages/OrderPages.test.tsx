@@ -1,12 +1,13 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { MemoryRouter, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { getOrderById, listOrders } from '../api/orders'
 import { AUTH_STORAGE_KEY } from '../api/sessionStorage'
 import { AuthProvider } from '../context/AuthContext'
 import { CartProvider } from '../context/CartContext'
 import { AppRouteTree } from '../routes/AppRoutes'
+import { ProtectedRoute } from '../routes/ProtectedRoute'
 import type { OrderResponse } from '../types/order'
 
 vi.mock('../api/orders', () => ({
@@ -182,6 +183,25 @@ it.each(['/orders', '/orders/99'])('blocks admin access to %s without fetching o
   expect(screen.queryByRole('link', { name: 'My orders' })).not.toBeInTheDocument()
   expect(listOrders).not.toHaveBeenCalled()
   expect(getOrderById).not.toHaveBeenCalled()
+})
+
+it('displays the access-denied message supplied to the protected route', () => {
+  saveSession('ADMIN')
+  render(
+    <MemoryRouter initialEntries={['/restricted']}>
+      <AuthProvider>
+        <Routes>
+          <Route element={<ProtectedRoute allowedRole="CUSTOMER" deniedMessage="Custom access message." />}>
+            <Route element={<p>Restricted content</p>} path="/restricted" />
+          </Route>
+        </Routes>
+      </AuthProvider>
+    </MemoryRouter>,
+  )
+
+  expect(screen.getByRole('heading', { name: 'Access denied' })).toBeInTheDocument()
+  expect(screen.getByText('Custom access message.')).toBeInTheDocument()
+  expect(screen.queryByText('Restricted content')).not.toBeInTheDocument()
 })
 
 it('shows the orders link for customers and opens the history from the detail', async () => {

@@ -1,46 +1,34 @@
-# React + TypeScript + Vite
+# Blossom E-commerce Frontend
 
-The public product catalog is available at `/`. Sign-in and registration return to
-the originating page when available, including after a session expires, or to the
-catalog otherwise. After registration, the frontend signs in through the login
-endpoint to obtain a token. If sign-in fails, the user can sign in manually.
+React, TypeScript, and Vite frontend for the Blossom e-commerce application.
+It provides a product catalog, authentication, cart, checkout, and order history.
 
-The cart is stored in localStorage along with the last known stock for each product.
-Checkout requires a customer account; the server checks current prices and stock.
-Signing in as a customer preserves a guest cart; signing in as an admin clears it.
-Admins cannot access the cart or purchase products. Signing out or losing an
-authenticated session after a 401 clears the cart, including its saved contents.
+## Getting started
 
-Customers can view their paginated order history at `/orders` and open each order
-to see its saved purchase prices and totals. These routes require a customer session.
+Run these commands from `frontend/`:
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
-
-Currently, two official plugins are available:
-
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```sh
+npm install
+npm run dev
+npm test
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Start the backend separately. Copy `.env.example` to `.env` to customize the API URL.
+
+## Environment
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `VITE_API_URL` | `http://localhost:8080/api/v1` | Backend API base URL |
+
+## Source structure
+
+- `src/api/`: HTTP client and API resources
+- `src/components/`: reusable UI components
+- `src/context/`: authentication and cart state
+- `src/hooks/`: reusable hooks
+- `src/pages/`: application screens
+- `src/routes/`: routing and access guards
+- `src/types/`: API and application types
+- `src/utils/`: shared utilities
+- `src/test/`: test setup
