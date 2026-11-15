@@ -15,14 +15,19 @@ it('prefers the 404 productId over an ID in the detail', () => {
   expect(getOrderProblem(error, items).message).toContain('Mug is unavailable.')
 })
 
-it('falls back to the detail when the 404 productId is invalid', () => {
-  const error = {
-    isAxiosError: true,
-    response: { status: 404, data: { detail: 'Product with id 42 was not found', productId: 0 } },
-  }
+it.each([undefined, 0, -1, 1.5, '42', Number.MAX_SAFE_INTEGER + 1])(
+  'does not infer the product from detail when productId is invalid: %s',
+  (productId) => {
+    const error = {
+      isAxiosError: true,
+      response: { status: 404, data: { detail: 'Product with id 42 was not found', productId } },
+    }
 
-  expect(getOrderProblem(error, items).message).toContain('Mug is unavailable.')
-})
+    expect(getOrderProblem(error, items).message).toBe(
+      'Product with id 42 was not found Please remove the unavailable product from your cart.',
+    )
+  },
+)
 
 it('identifies a 404 product absent from the cart by its body ID', () => {
   const error = {

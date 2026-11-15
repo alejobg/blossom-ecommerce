@@ -166,7 +166,7 @@ it('shows a 409 stock conflict and keeps the cart so the user can correct it', a
   expect(screen.getByRole('button', { name: 'Place order' })).toBeEnabled()
 })
 
-it('identifies an unavailable product on 404 without clearing the cart', async () => {
+it('shows a generic 404 message without productId and keeps the cart', async () => {
   const user = userEvent.setup()
   saveCart()
   saveSession()
@@ -177,7 +177,8 @@ it('identifies an unavailable product on 404 without clearing the cart', async (
   renderCart()
 
   await user.click(screen.getByRole('button', { name: 'Place order' }))
-  expect(await screen.findByRole('alert')).toHaveTextContent('Mug is unavailable. Please remove it')
+  expect(await screen.findByRole('alert')).toHaveTextContent('Please remove the unavailable product from your cart.')
+  expect(screen.getByRole('alert')).not.toHaveTextContent('Mug is unavailable.')
   expect(screen.getByText('$69.98')).toBeInTheDocument()
 })
 
