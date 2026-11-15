@@ -154,7 +154,7 @@ Tests are written together with each module, not at the end: unit tests for doma
 | Block | Time | Work |
 |---|---|---|
 | Frontend base | 1 h | Vite + React + TypeScript, routing, API client with the JWT, auth context. |
-| Required screens | 4 h | Login/register, product catalog with search, product detail, cart and checkout, order history, plus admin product management. Forms with react-hook-form + zod. |
+| Required screens | 4 h | Login, register, product catalog with search and filters, product detail, cart and checkout, order history and order detail. Forms with react-hook-form + zod. Product management stays in the API (Swagger UI): an admin screen is optional and goes to the end of the list. |
 | Docker | 1 h | Dockerfiles and a `docker-compose.yml` that starts database, backend and frontend; secrets through environment variables with `.env.example`. |
 | Documentation and demo | 1.5 h | README (setup, architecture, decisions), these theoretical answers, screenshots or a short video of the full flow. |
 | Buffer | 0.5–1 h | Fixes found during the end-to-end run and a final review. |
