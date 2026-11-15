@@ -21,11 +21,24 @@ services:
       DB_URL: jdbc:postgresql://postgres:5432/ecommerce
       DB_USERNAME: ecommerce
       DB_PASSWORD: ecommerce
+      # The browser loads the frontend from this origin and calls the API from there
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
     ports:
       - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Baked into the bundle and used by the browser, so it points at the host port, not the service name
+        VITE_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
 
 volumes:
   postgres-data:
