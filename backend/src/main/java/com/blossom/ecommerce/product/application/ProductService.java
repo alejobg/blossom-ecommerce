@@ -10,6 +10,7 @@ import com.blossom.ecommerce.product.domain.port.out.ProductRepositoryPort;
 import com.blossom.ecommerce.shared.domain.DomainValidationException;
 import com.blossom.ecommerce.shared.domain.PageQuery;
 import com.blossom.ecommerce.shared.domain.PageResult;
+import com.blossom.ecommerce.shared.domain.ProductNotFoundException;
 import com.blossom.ecommerce.shared.domain.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -88,7 +89,7 @@ public class ProductService implements ProductUseCase {
         List<ReservedStock> reservations = requests.stream().map(request -> {
             Product product = lockedById.get(request.productId());
             if (product == null) {
-                throw new ResourceNotFoundException(RESOURCE, request.productId());
+                throw new ProductNotFoundException(request.productId());
             }
             product.decreaseStock(request.quantity());
             return new ReservedStock(product.getId(), product.getName(), product.getPrice(), request.quantity());

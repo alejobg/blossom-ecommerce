@@ -4,6 +4,7 @@ import com.blossom.ecommerce.shared.domain.ConflictException;
 import com.blossom.ecommerce.shared.domain.DomainValidationException;
 import com.blossom.ecommerce.shared.domain.InsufficientStockException;
 import com.blossom.ecommerce.shared.domain.InvalidCredentialsException;
+import com.blossom.ecommerce.shared.domain.ProductNotFoundException;
 import com.blossom.ecommerce.shared.domain.ResourceNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ResourceNotFoundException.class)
     public ProblemDetail handleNotFound(ResourceNotFoundException ex) {
         return problem(HttpStatus.NOT_FOUND, "Resource not found", ex.getMessage());
+    }
+
+    /** More specific than {@link ResourceNotFoundException}: adds which product of the order is missing. */
+    @ExceptionHandler(ProductNotFoundException.class)
+    public ProblemDetail handleProductNotFound(ProductNotFoundException ex) {
+        ProblemDetail problem = problem(HttpStatus.NOT_FOUND, "Resource not found", ex.getMessage());
+        problem.setProperty("productId", ex.getProductId());
+        return problem;
     }
 
     @ExceptionHandler(DomainValidationException.class)

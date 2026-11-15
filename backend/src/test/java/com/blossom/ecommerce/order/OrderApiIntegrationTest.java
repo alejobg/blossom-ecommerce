@@ -145,7 +145,8 @@ class OrderApiIntegrationTest {
                 {"items": [{"productId": %d, "quantity": 1}, {"productId": 9999, "quantity": 1}]}
                 """.formatted(lampId))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.detail").value("Product with id 9999 was not found"));
+                .andExpect(jsonPath("$.detail").value("Product with id 9999 was not found"))
+                .andExpect(jsonPath("$.productId").value(9999));
 
         assertThat(stockOf(lampId)).isEqualTo(5);
         assertThat(orderCount()).isZero();
@@ -159,7 +160,8 @@ class OrderApiIntegrationTest {
         placeOrder(token, """
                 {"items": [{"productId": %d, "quantity": 1}]}
                 """.formatted(lampId))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.productId").value(lampId.intValue()));
     }
 
     @Test

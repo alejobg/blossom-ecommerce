@@ -6,6 +6,7 @@ import com.blossom.ecommerce.order.domain.port.in.PlaceOrderCommand;
 import com.blossom.ecommerce.shared.domain.InsufficientStockException;
 import com.blossom.ecommerce.shared.domain.PageQuery;
 import com.blossom.ecommerce.shared.domain.PageResult;
+import com.blossom.ecommerce.shared.domain.ProductNotFoundException;
 import com.blossom.ecommerce.shared.domain.ResourceNotFoundException;
 import com.blossom.ecommerce.shared.security.JwtService;
 import com.blossom.ecommerce.shared.security.SecurityConfig;
@@ -157,11 +158,13 @@ class OrderControllerTest {
 
     @Test
     void placeReturns404WhenAProductDoesNotExist() throws Exception {
-        when(orderUseCase.place(any())).thenThrow(new ResourceNotFoundException("Product", 1L));
+        when(orderUseCase.place(any())).thenThrow(new ProductNotFoundException(1L));
 
         mockMvc.perform(post(ORDERS).header(HttpHeaders.AUTHORIZATION, customerToken())
                         .contentType(MediaType.APPLICATION_JSON).content(VALID_BODY))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.detail").value("Product with id 1 was not found"))
+                .andExpect(jsonPath("$.productId").value(1));
     }
 
     @Test

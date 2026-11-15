@@ -11,6 +11,7 @@ import com.blossom.ecommerce.shared.domain.DomainValidationException;
 import com.blossom.ecommerce.shared.domain.InsufficientStockException;
 import com.blossom.ecommerce.shared.domain.PageQuery;
 import com.blossom.ecommerce.shared.domain.PageResult;
+import com.blossom.ecommerce.shared.domain.ProductNotFoundException;
 import com.blossom.ecommerce.shared.domain.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -181,8 +182,9 @@ class ProductServiceTest {
 
             assertThatThrownBy(() -> productService.reserveStock(
                     List.of(new StockRequest(1L, 1), new StockRequest(99L, 1))))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessage("Product with id 99 was not found");
+                    .isInstanceOf(ProductNotFoundException.class)
+                    .hasMessage("Product with id 99 was not found")
+                    .extracting("productId").isEqualTo(99L);
             verify(productRepository, never()).save(any());
         }
 
