@@ -31,14 +31,6 @@ export interface Product {
   category: ProductCategory
 }
 
-export interface PagedResponse<T> {
-  content: T[]
-  page: number
-  size: number
-  totalElements: number
-  totalPages: number
-}
-
 export interface ProductSearchParams {
   name?: string
   category?: ProductCategory

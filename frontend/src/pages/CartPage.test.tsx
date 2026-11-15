@@ -5,7 +5,7 @@ import { useState, type PropsWithChildren } from 'react'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import client from '../api/client'
-import { placeOrder } from '../api/orders'
+import { getOrderById, placeOrder } from '../api/orders'
 import { loginUser, registerUser } from '../api/auth'
 import { AuthProvider } from '../context/AuthContext'
 import { AuthContext } from '../context/authContextValue'
@@ -15,7 +15,7 @@ import { CART_STORAGE_KEY } from '../types/cart'
 import type { AuthSession, LoginRequest } from '../types/auth'
 import { AppRouteTree } from '../routes/AppRoutes'
 
-vi.mock('../api/orders', () => ({ placeOrder: vi.fn() }))
+vi.mock('../api/orders', () => ({ placeOrder: vi.fn(), getOrderById: vi.fn(), listOrders: vi.fn() }))
 vi.mock('../api/auth', () => ({ loginUser: vi.fn(), registerUser: vi.fn() }))
 
 const originalAdapter = client.defaults.adapter
@@ -59,6 +59,9 @@ function renderCart() {
 beforeEach(() => {
   localStorage.clear()
   vi.clearAllMocks()
+  vi.mocked(getOrderById).mockResolvedValue({
+    id: 99, items: [], total: 69.98, createdAt: '2026-01-01T12:00:00Z',
+  })
 })
 
 afterEach(() => {
@@ -70,6 +73,7 @@ it('shows an empty cart with a link to the catalog', () => {
   renderCart()
   expect(screen.getByText('Your cart is empty.')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Browse products' })).toHaveAttribute('href', '/')
+  expect(screen.getByRole('link', { name: /Cart/ })).toHaveAttribute('href', '/cart')
 })
 
 it('calculates the total and updates quantities and the header badge', async () => {
@@ -295,12 +299,38 @@ it('returns a newly registered customer to the unchanged cart', async () => {
   expect(placeOrder).not.toHaveBeenCalled()
 })
 
-it('prevents admin accounts from placing orders', () => {
+it('denies admin access to the cart and hides its header link', () => {
   saveCart()
   saveSession('ADMIN')
   renderCart()
 
-  expect(screen.getByText('Admin accounts cannot place orders.')).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Place order' })).toBeDisabled()
+  expect(screen.getByRole('heading', { name: 'Access denied' })).toBeInTheDocument()
+  expect(screen.getByText('Only customer accounts can view the cart.')).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /Cart/ })).not.toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Place order' })).not.toBeInTheDocument()
   expect(placeOrder).not.toHaveBeenCalled()
+})
+
+it('clears a guest cart when signing in as an admin', async () => {
+  const user = userEvent.setup()
+  saveCart()
+  vi.mocked(loginUser).mockResolvedValue({
+    accessToken: 'token', tokenType: 'Bearer', expiresIn: 3600,
+    user: { id: 1, name: 'Admin', email: 'admin@example.com', role: 'ADMIN' },
+  })
+  renderCart()
+
+  await user.click(screen.getByRole('button', { name: 'Place order' }))
+  await user.type(screen.getByLabelText('Email address'), 'admin@example.com')
+  await user.type(screen.getByLabelText('Password'), 'secret123')
+  await user.click(screen.getByRole('button', { name: 'Sign in' }))
+
+  expect(await screen.findByRole('heading', { name: 'Access denied' })).toBeInTheDocument()
+  expect(screen.queryByRole('link', { name: /Cart/ })).not.toBeInTheDocument()
+  expect(JSON.parse(localStorage.getItem(CART_STORAGE_KEY) ?? 'null')).toEqual({
+    items: [], stockByProductId: {},
+  })
+  expect(placeOrder).not.toHaveBeenCalled()
+  await user.click(screen.getByRole('button', { name: 'Sign out' }))
+  expect(screen.getByText('Your cart is empty.')).toBeInTheDocument()
 })

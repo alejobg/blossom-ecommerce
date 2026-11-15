@@ -7,8 +7,12 @@ endpoint to obtain a token. If sign-in fails, the user can sign in manually.
 
 The cart is stored in localStorage along with the last known stock for each product.
 Checkout requires a customer account; the server checks current prices and stock.
-Signing in preserves a guest cart. Signing out or losing an authenticated session
-after a 401 clears the cart, including its saved contents.
+Signing in as a customer preserves a guest cart; signing in as an admin clears it.
+Admins cannot access the cart or purchase products. Signing out or losing an
+authenticated session after a 401 clears the cart, including its saved contents.
+
+Customers can view their paginated order history at `/orders` and open each order
+to see its saved purchase prices and totals. These routes require a customer session.
 
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 

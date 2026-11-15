@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
 import { loginUser, registerUser } from '../api/auth'
+import { getOrderById } from '../api/orders'
 import { getProductById, searchProducts } from '../api/products'
 import { AUTH_STORAGE_KEY } from '../api/sessionStorage'
 import { AuthProvider } from '../context/AuthContext'
@@ -18,6 +19,12 @@ vi.mock('../api/auth', () => ({
 vi.mock('../api/products', () => ({
   getProductById: vi.fn(),
   searchProducts: vi.fn(),
+}))
+
+vi.mock('../api/orders', () => ({
+  getOrderById: vi.fn(),
+  listOrders: vi.fn(),
+  placeOrder: vi.fn(),
 }))
 
 const customer: UserResponse = {
@@ -68,6 +75,9 @@ describe('authentication pages', () => {
     })
     vi.mocked(getProductById).mockResolvedValue({
       id: 12, name: 'Ceramic mug', description: 'A mug', price: 18.5, stock: 6, category: 'HOME',
+    })
+    vi.mocked(getOrderById).mockResolvedValue({
+      id: 99, items: [], total: 0, createdAt: '2026-01-01T12:00:00Z',
     })
   })
 

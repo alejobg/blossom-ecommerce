@@ -4,13 +4,15 @@ import { useProductCart } from '../hooks/useProductCart'
 import type { Product } from '../types/product'
 
 export function AddToCart({ product }: { product: Product }) {
-  const { addProduct, quantity, limitReached } = useProductCart(product)
+  const { addProduct, quantity, limitReached, canPurchase } = useProductCart(product)
   const [message, setMessage] = useState('')
 
   const handleAdd = () => {
     const error = addProduct()
     setMessage(error ?? 'Added to your cart.')
   }
+
+  if (!canPurchase) return null
 
   return (
     <>

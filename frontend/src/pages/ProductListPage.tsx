@@ -5,9 +5,9 @@ import { searchProducts } from '../api/products'
 import { ProductFilterBar } from '../components/ProductFilterBar'
 import { ProductListHeading } from '../components/ProductListHeading'
 import { ProductResults } from '../components/ProductResults'
+import type { PagedResponse } from '../types/pagination'
 import {
   PRODUCT_CATEGORIES,
-  type PagedResponse,
   type Product,
   type ProductSearchParams,
 } from '../types/product'

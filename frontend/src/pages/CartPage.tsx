@@ -3,10 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { getOrderProblem } from '../api/orderProblem'
 import { placeOrder } from '../api/orders'
 import { CartItemRow } from '../components/CartItemRow'
+import { AccessDenied } from '../components/AccessDenied'
 import { useAuth } from '../hooks/useAuth'
 import { useCart } from '../hooks/useCart'
 import { authOrigin } from '../routes/authRedirect'
 import { formatPrice } from '../utils/formatPrice'
+import { canPurchase } from '../utils/canPurchase'
 
 export function CartPage() {
   const { items, stockByProductId, total, remove, updateQuantity, updateStock, clear } = useCart()
@@ -28,8 +30,6 @@ export function CartPage() {
       navigate('/login', { state: authOrigin(location) })
       return
     }
-    if (session.user.role === 'ADMIN') return
-
     inFlight.current = true
     setSubmitting(true)
     setError('')
@@ -47,6 +47,10 @@ export function CartPage() {
       inFlight.current = false
       setSubmitting(false)
     }
+  }
+
+  if (!canPurchase(session)) {
+    return <AccessDenied message="Only customer accounts can view the cart." />
   }
 
   return (
@@ -78,12 +82,9 @@ export function CartPage() {
             <span>{formatPrice(total)}</span>
           </div>
           {error && <p className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-700" role="alert">{error}</p>}
-          {session?.user.role === 'ADMIN' && (
-            <p className="mt-5 text-sm text-slate-600">Admin accounts cannot place orders.</p>
-          )}
           <button
             className="mt-6 w-full rounded-xl bg-blossom-600 px-5 py-3.5 font-semibold text-white hover:bg-blossom-700 disabled:cursor-not-allowed disabled:opacity-60"
-            disabled={submitting || session?.user.role === 'ADMIN' || hasInsufficientStock}
+            disabled={submitting || hasInsufficientStock}
             onClick={handleCheckout}
             type="button"
           >

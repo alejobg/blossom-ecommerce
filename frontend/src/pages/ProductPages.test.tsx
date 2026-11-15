@@ -3,10 +3,13 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useSearchParams } from 'react-router-dom'
 import { getProductById, searchProducts } from '../api/products'
-import type { PagedResponse, Product } from '../types/product'
+import { AUTH_STORAGE_KEY } from '../api/sessionStorage'
+import type { PagedResponse } from '../types/pagination'
+import type { Product } from '../types/product'
 import { ProductDetailPage } from './ProductDetailPage'
 import { ProductListPage } from './ProductListPage'
 import { CartProvider } from '../context/CartContext'
+import { AuthProvider } from '../context/AuthContext'
 
 vi.mock('../api/products', () => ({
   getProductById: vi.fn(),
@@ -44,10 +47,12 @@ function QueryProbe() {
 function renderProductList(path = '/products') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <CartProvider>
-        <ProductListPage />
-        <QueryProbe />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <ProductListPage />
+          <QueryProbe />
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
@@ -55,11 +60,13 @@ function renderProductList(path = '/products') {
 function renderProductDetail(path = '/products/12') {
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <CartProvider>
-        <Routes>
-          <Route element={<ProductDetailPage />} path="/products/:id" />
-        </Routes>
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Routes>
+            <Route element={<ProductDetailPage />} path="/products/:id" />
+          </Routes>
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
@@ -191,6 +198,21 @@ describe('product catalog pages', () => {
     await user.click(await screen.findByRole('button', { name: 'Add to cart' }))
     expect(screen.getByRole('button', { name: 'Add to cart' })).toBeDisabled()
     expect(screen.getByText('The maximum available quantity is in your cart.')).toBeInTheDocument()
+  })
+
+  it.each([
+    { role: 'ADMIN', visible: false },
+    { role: 'CUSTOMER', visible: true },
+  ] as const)('shows detail purchase controls for $role: $visible', async ({ role, visible }) => {
+    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+      accessToken: 'token', tokenType: 'Bearer', expiresIn: 3600,
+      user: { id: 1, name: 'Ana', email: 'ana@example.com', role },
+    }))
+    renderProductDetail()
+
+    expect(await screen.findByRole('heading', { name: 'Ceramic mug' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add to cart' }) !== null).toBe(visible)
+    if (!visible) expect(screen.queryByRole('link', { name: 'View cart' })).not.toBeInTheDocument()
   })
 
   it('updates the URL when moving between product pages', async () => {

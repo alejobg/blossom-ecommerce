@@ -1,4 +1,5 @@
-import type { PagedResponse, Product } from '../types/product'
+import type { PagedResponse } from '../types/pagination'
+import type { Product } from '../types/product'
 
 interface ProductListHeadingProps {
   result: PagedResponse<Product> | null

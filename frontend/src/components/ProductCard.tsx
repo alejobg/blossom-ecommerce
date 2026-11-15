@@ -10,7 +10,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addProduct, limitReached } = useProductCart(product)
+  const { addProduct, limitReached, canPurchase } = useProductCart(product)
   const [added, setAdded] = useState(false)
   const [error, setError] = useState('')
   const feedbackTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -49,17 +49,23 @@ export function ProductCard({ product }: ProductCardProps) {
         <p className="font-semibold text-blossom-700" aria-label={`Price ${formatPrice(product.price)}`}>
           {formatPrice(product.price)}
         </p>
-        <button
-          className="relative z-10 rounded-xl bg-blossom-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blossom-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blossom-600 disabled:cursor-not-allowed disabled:opacity-60"
-          disabled={limitReached}
-          onClick={handleAdd}
-          type="button"
-        >
-          {product.stock === 0 ? 'Out of stock' : added ? 'Added ✓' : 'Add to cart'}
-        </button>
+        {canPurchase && (
+          <button
+            className="relative z-10 rounded-xl bg-blossom-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blossom-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blossom-600 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={limitReached}
+            onClick={handleAdd}
+            type="button"
+          >
+            {product.stock === 0 ? 'Out of stock' : added ? 'Added ✓' : 'Add to cart'}
+          </button>
+        )}
       </div>
-      <span className="sr-only" role="status">{added ? 'Added to your cart.' : ''}</span>
-      {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
+      {canPurchase && (
+        <>
+          <span className="sr-only" role="status">{added ? 'Added to your cart.' : ''}</span>
+          {error && <p className="mt-3 text-sm text-red-700" role="alert">{error}</p>}
+        </>
+      )}
     </article>
   )
 }

@@ -2,6 +2,7 @@ import type { AuthSession } from '../types/auth'
 
 export const AUTH_STORAGE_KEY = 'blossom.auth'
 export const AUTH_SESSION_CLEARED_EVENT = 'blossom:auth-session-cleared'
+export const AUTH_SESSION_SAVED_EVENT = 'blossom:auth-session-saved'
 
 function isAuthSession(value: unknown): value is AuthSession {
   if (typeof value !== 'object' || value === null) return false
@@ -40,6 +41,7 @@ export function getStoredAuthSession(): AuthSession | null {
 
 export function saveAuthSession(session: AuthSession): void {
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session))
+  window.dispatchEvent(new Event(AUTH_SESSION_SAVED_EVENT))
 }
 
 export function clearAuthSession(): void {

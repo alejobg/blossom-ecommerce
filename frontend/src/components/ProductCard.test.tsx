@@ -2,6 +2,8 @@ import { act, fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { AUTH_STORAGE_KEY } from '../api/sessionStorage'
+import { AuthProvider } from '../context/AuthContext'
 import { CartProvider } from '../context/CartContext'
 import { CART_STORAGE_KEY } from '../types/cart'
 import type { Product } from '../types/product'
@@ -18,13 +20,15 @@ function LocationProbe() {
 function renderCard(currentProduct = product) {
   return render(
     <MemoryRouter initialEntries={['/']}>
-      <CartProvider>
-        <Routes>
-          <Route element={<ProductCard product={currentProduct} />} path="/" />
-          <Route element={<h1>Product detail</h1>} path="/products/:id" />
-        </Routes>
-        <LocationProbe />
-      </CartProvider>
+      <AuthProvider>
+        <CartProvider>
+          <Routes>
+            <Route element={<ProductCard product={currentProduct} />} path="/" />
+            <Route element={<h1>Product detail</h1>} path="/products/:id" />
+          </Routes>
+          <LocationProbe />
+        </CartProvider>
+      </AuthProvider>
     </MemoryRouter>,
   )
 }
@@ -107,4 +111,18 @@ it('shows cart errors instead of success feedback', async () => {
   expect(screen.getByRole('alert')).toHaveTextContent('A cart cannot contain more than 50 different products.')
   expect(screen.getByRole('button', { name: 'Add to cart' })).toBeEnabled()
   expect(screen.getByTestId('location')).toHaveTextContent(/^\/$/)
+})
+
+it.each([
+  { role: 'ADMIN', visible: false },
+  { role: 'CUSTOMER', visible: true },
+] as const)('shows purchase controls for $role: $visible', ({ role, visible }) => {
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({
+    accessToken: 'token', tokenType: 'Bearer', expiresIn: 3600,
+    user: { id: 1, name: 'Ana', email: 'ana@example.com', role },
+  }))
+  renderCard()
+
+  expect(screen.getByRole('link', { name: 'Ceramic mug' })).toHaveAttribute('href', '/products/12')
+  expect(screen.queryByRole('button', { name: 'Add to cart' }) !== null).toBe(visible)
 })

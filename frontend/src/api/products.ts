@@ -1,5 +1,6 @@
 import client from './client'
-import type { PagedResponse, Product, ProductSearchParams } from '../types/product'
+import type { PagedResponse } from '../types/pagination'
+import type { Product, ProductSearchParams } from '../types/product'
 
 export async function searchProducts(
   params: ProductSearchParams,

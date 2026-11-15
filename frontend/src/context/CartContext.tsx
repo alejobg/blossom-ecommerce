@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { z } from 'zod'
-import { AUTH_SESSION_CLEARED_EVENT } from '../api/sessionStorage'
+import { AUTH_SESSION_CLEARED_EVENT, AUTH_SESSION_SAVED_EVENT, getStoredAuthSession } from '../api/sessionStorage'
 import { CART_STORAGE_KEY, MAX_CART_ITEMS, MAX_ITEM_QUANTITY, type CartItem } from '../types/cart'
 import type { Product } from '../types/product'
+import { canPurchase } from '../utils/canPurchase'
 import { CartContext } from './cartContextValue'
 
 const cartSchema = z.object({
@@ -113,14 +114,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clear = useCallback(() => save({ items: [], stockByProductId: {} }), [save])
 
   useEffect(() => {
+    const handleSessionSaved = () => {
+      if (!canPurchase(getStoredAuthSession())) clear()
+    }
     const handleSessionCleared = (event: Event) => {
       if (!(event instanceof CustomEvent)) return
       const detail: unknown = event.detail
       if (typeof detail === 'object' && detail !== null &&
           'hadSession' in detail && detail.hadSession === true) clear()
     }
+    window.addEventListener(AUTH_SESSION_SAVED_EVENT, handleSessionSaved)
     window.addEventListener(AUTH_SESSION_CLEARED_EVENT, handleSessionCleared)
-    return () => window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, handleSessionCleared)
+    return () => {
+      window.removeEventListener(AUTH_SESSION_SAVED_EVENT, handleSessionSaved)
+      window.removeEventListener(AUTH_SESSION_CLEARED_EVENT, handleSessionCleared)
+    }
   }, [clear])
 
   const value = useMemo(() => ({

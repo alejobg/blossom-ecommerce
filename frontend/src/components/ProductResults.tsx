@@ -1,5 +1,6 @@
 import { ProductCard } from './ProductCard'
-import type { PagedResponse, Product } from '../types/product'
+import type { PagedResponse } from '../types/pagination'
+import type { Product } from '../types/product'
 
 interface ProductResultsProps {
   result: PagedResponse<Product> | null
